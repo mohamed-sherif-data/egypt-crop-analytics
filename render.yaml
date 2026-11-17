@@ -1,0 +1,17 @@
+# Render blueprint: one free web service running the container in this repo.
+# The free instance sleeps after ~15 minutes idle and cold-starts on the next
+# request; the models are trained lazily, so /v1/health never waits for them.
+services:
+  - type: web
+    name: egypt-crop-analytics
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /v1/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
