@@ -16,7 +16,8 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://127.0.0.1:8000"
-OUT = Path(__file__).resolve().parents[1] / "docs" / "media"
+SUBDIR = sys.argv[2] if len(sys.argv) > 2 else ""
+OUT = Path(__file__).resolve().parents[1] / "docs" / "media" / SUBDIR
 SECTIONS = ["forecast", "risk", "models", "data"]
 
 

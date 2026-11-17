@@ -1,7 +1,7 @@
-"""Analytics engine for the Egypt crop yield dashboard.
+"""Analytics engine for the Egypt crop yield service.
 
-``app.py`` only renders. Every numerical decision lives here so that it can be
-tested without Streamlit and cached once per session.
+The FastAPI layer only serialises. Every numerical decision lives here so that
+it can be tested without a web server and cached once per process.
 
 Data: FAOSTAT domain "Crops and livestock products" (QCL), Egypt, 1990-2024.
 
@@ -46,8 +46,8 @@ FLAG_LABELS = {
     "M": "Missing; cannot exist",
 }
 
-# Fitted objects are expensive to rebuild on every Streamlit rerun, so they are
-# memoised against a cheap signature of the table they were trained on.
+# Fitting costs seconds, and the API may serve many requests per process, so
+# fitted objects are memoised against a cheap signature of the training table.
 _CACHE: dict[tuple[str, tuple], object] = {}
 
 

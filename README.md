@@ -7,14 +7,19 @@ year-on-year drop.
 Built on 35 years of FAOSTAT records (1990–2024). Every reported score is
 measured on years the models never saw during training.
 
-**Live service:** _added after deployment_
+**Live service:** <https://mohamed-sherif-data--crop-api.modal.run>
 
 | | |
 |---|---|
-| Interface | `/` |
-| Interactive API docs | `/docs` |
-| OpenAPI schema | `/openapi.json` |
-| Health probe | `/v1/health` |
+| Interface | <https://mohamed-sherif-data--crop-api.modal.run/> |
+| Interactive API docs | <https://mohamed-sherif-data--crop-api.modal.run/docs> |
+| OpenAPI schema | <https://mohamed-sherif-data--crop-api.modal.run/openapi.json> |
+| Health probe | <https://mohamed-sherif-data--crop-api.modal.run/v1/health> |
+
+The host scales to zero when nobody is calling it, so the first request after a
+quiet spell takes a few seconds to warm up. Every request after that is fast.
+
+![The deployed interface](docs/media/live/ui-full.png)
 
 ---
 
@@ -47,7 +52,11 @@ No framework, no Streamlit, no second deployment, no CORS.
 |---|---|---|---|
 | Naive — repeat last year | 0.969 | **982** | **6.37 %** |
 | Linear regression | **0.975** | 1,168 | 13.49 % |
-| Random forest | 0.975 | 1,146 | 9.96 % |
+| Random forest | 0.975 | 1,145 | 9.95 % |
+
+<sub>Figures as served by `/v1/models/metrics` on the live host. The last digit
+of the forest scores moves by a unit between scikit-learn builds; the split, the
+data and the ranking do not.</sub>
 
 **The honest headline: the naive baseline wins on both error measures.** For
 annual national yields, a crop's own last value is genuinely hard to beat, and
@@ -79,6 +88,9 @@ Then open <http://127.0.0.1:8000> for the interface and
 <http://127.0.0.1:8000/docs> for Swagger UI.
 
 ### Call it like a client would
+
+Replace `http://127.0.0.1:8000` with `https://mohamed-sherif-data--crop-api.modal.run`
+to talk to the live service instead.
 
 ```bash
 # next-year forecast, three models side by side
@@ -187,17 +199,34 @@ app directly.
 
 ## Deploy
 
-The repository ships a single `Dockerfile` on port **7860** — the port Hugging
-Face Spaces expects. It runs as a non-root user, has a healthcheck, and copies
-only `core.py`, `api/`, `web/` and the CSV.
+Two paths are in the repository, both from the same source tree.
+
+**Modal (what the live link runs on).** Serverless containers, free monthly
+compute, no card:
+
+```bash
+py -m pip install modal
+py -m modal token new          # one browser authorisation, once
+py -m modal deploy scripts/modal_app.py
+```
+
+`scripts/modal_app.py` builds an image from the same files the Dockerfile
+copies and mounts the ASGI app at the endpoint label `crop-api`. The deployment
+scales to zero and wakes on the next request.
+
+**Any container host.** The `Dockerfile` takes `PORT` from the environment and
+falls back to 7860, runs as a non-root user, and has a healthcheck:
 
 ```bash
 docker build -t crop-analytics .
 docker run -p 7860:7860 crop-analytics
 ```
 
-The same image works on any container host; see `docs/PLAN.md` for the hosting
-comparison and why free-of-charge mattered here.
+`render.yaml` is included as a blueprint for Render, but Render now asks for a
+card even on the free instance type, and Hugging Face requires a PRO
+subscription for Docker Spaces — which is why the public link is on Modal. The
+container is unchanged either way; see `docs/WORKLOG.md` for the full
+comparison.
 
 ---
 
@@ -209,9 +238,11 @@ api/           FastAPI application, service layer, Pydantic schemas
 web/           interface served at / — no build step
 tests/         16 engine tests + 17 API contract tests
 examples/      Python, JavaScript and R clients
-docs/          PLAN.md (decisions and phases), WORKLOG.md (evidence log)
+scripts/       deploy to Modal, capture the docs screenshots
+docs/          PLAN.md (decisions and phases), WORKLOG.md (evidence log), media/
 legacy/        the old Streamlit app, kept for traceability, not shipped
-Dockerfile     one container, port 7860
+Dockerfile     one container, port from $PORT or 7860
+render.yaml    Render blueprint (needs a card for the free instance)
 ```
 
 ---

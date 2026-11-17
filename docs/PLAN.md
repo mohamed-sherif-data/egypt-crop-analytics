@@ -1,8 +1,12 @@
-# Plan v3 — Egypt Crop Yield Analytics (Streamlit removed)
+# Plan v4 — Egypt Crop Yield Analytics (deployed)
 
-> Supersedes v1 (single Streamlit app) and v2 (Streamlit as a separate client).
-> The dashboard is now a plain HTML/CSS/JS client served by the API itself, so
-> the project ships as **one service, one link**.
+> Supersedes v1 (single Streamlit app), v2 (Streamlit as a separate client) and
+> v3 (Streamlit removed, hosting still assumed to be a Hugging Face Space).
+> The product is a FastAPI service whose interface it serves itself, so the
+> project ships as **one service, one link**.
+
+**Live:** <https://mohamed-sherif-data--crop-api.modal.run>
+**Code:** <https://github.com/mohamed-sherif-data/egypt-crop-analytics>
 
 ## What changed, in order
 
@@ -10,7 +14,8 @@
 |---|---|---|---|
 | v1 | Streamlit dashboard | Streamlit | Streamlit Cloud |
 | v2 | FastAPI + Streamlit client | Streamlit (second deployment) | HF Space + Streamlit Cloud |
-| **v3** | **FastAPI service** | **static `web/` SPA** | **one container, one URL** |
+| v3 | FastAPI service | static `web/` SPA | one container, one URL |
+| **v4** | **same service** | **same SPA** | **Modal, serverless ASGI** |
 
 Two reasons Streamlit had to go:
 
@@ -79,14 +84,27 @@ risk; serif display type (Instrument Serif) against Inter for the body.
 
 ## Hosting
 
-| Option | Free | Card | Verdict |
+The assumption in v3 — that a free Hugging Face Docker Space would host this —
+turned out to be wrong on the day of deployment. The hosting was decided by
+attempting each candidate, not by reading marketing pages:
+
+| Option | Free? | Card? | Outcome |
 |---|---|---|---|
-| Hugging Face Space, Docker SDK | yes | no | **chosen** |
-| Render free web service | yes | no | fallback (sleeps) |
+| Hugging Face Space, Docker SDK | no | — | **rejected**: the API answers `402 Payment Required`; free `cpu-basic` is limited to Static Spaces, Docker and Gradio need PRO |
+| Render free web service | no | yes | **rejected**: the deploy button opens "Add Card" even with the $0 instance type selected |
+| Koyeb | yes | no | **rejected**: email verification passed, console then returned `401` on every API call and redirected to an empty settings page |
+| **Modal, serverless ASGI** | **yes** | **no** | **chosen**: $1/month free compute without a card, GitHub auth, `modal deploy` from this repo |
 | Fly.io / Cloud Run / Railway | partial | yes | rejected |
 
-One Dockerfile, port **7860**, serves everything. Public URL shape:
-`https://<user>-egypt-crop-analytics.hf.space`
+Public URL:
+
+```
+https://mohamed-sherif-data--crop-api.modal.run
+```
+
+The container definition is still the portable artefact: the same `Dockerfile`
+runs on any host that takes a port. Modal mounts the same files and serves the
+same ASGI object, so behaviour is identical.
 
 ## Phases
 
@@ -97,34 +115,44 @@ One Dockerfile, port **7860**, serves everything. Public URL shape:
 Eleven endpoints, Pydantic contracts, 404/409/422 behaviour verified with a live
 ASGI client. `fastapi` raised to 0.163.2 for `starlette 1.10` compatibility.
 
-### Phase 3 — Frontend  `[~]`
+### Phase 3 — Frontend  `[x]`
 - [x] `web/index.html`, `web/styles.css`, `web/app.js`, hero image
-- [ ] FastAPI mounts `web/` at `/` (routes registered first)
-- [ ] Browser walkthrough of every section against the live server
+- [x] FastAPI mounts `web/` at `/` (routes registered first; mount last)
+- [x] Browser walkthrough of every section against the live server
+- [x] Screenshots captured by script at a pinned viewport (1440×900, dpr 1)
+- [x] Unknown-crop path clears the stale numbers instead of leaving another
+      crop's values on screen
 
-### Phase 4 — Packaging  `[ ]`
-- [ ] `requirements.txt` without Streamlit; `requirements-dev.txt`
-- [ ] `Dockerfile` (port 7860, non-root, healthcheck)
-- [ ] `README.md`, `examples/api_client.py`, WORKLOG entry
+### Phase 4 — Packaging  `[x]`
+- [x] `requirements.txt` without Streamlit; `requirements-dev.txt`
+- [x] `Dockerfile` (`$PORT` or 7860, non-root, healthcheck)
+- [x] `README.md`, `examples/` in Python, JavaScript and R
+- [x] Git repository, first commit, public GitHub repo
 
-### Phase 5 — Publish  `[!]`
-- [ ] Git repo + push to GitHub (login gate)
-- [ ] Create and upload the HF Space (login gate)
+### Phase 5 — Publish  `[x]`
+- [x] Git repo pushed: <https://github.com/mohamed-sherif-data/egypt-crop-analytics>
+- [x] Service deployed to Modal: <https://mohamed-sherif-data--crop-api.modal.run>
 
-### Phase 6 — Verify the live URL  `[ ]`
-- [ ] `curl /v1/health`, `/docs`, `/` on the public host
-- [ ] Screenshot the deployed interface
+### Phase 6 — Verify the live URL  `[x]`
+- [x] `curl /v1/health` → 200 with the crop count and year span
+- [x] `/` → 200 `text/html`, `/styles.css` and the hero image → 200
+- [x] `/docs` → 200, openapi.json lists 11 paths
+- [x] `/v1/crops/wheat/forecast` → the three models, target year 2025
+- [x] `404` for an unknown crop, `409` for a crop with too little history
+- [x] Interface rendered in a real browser against the live host: KPIs, 12
+      ranking rows, chart, scenario scorer
 
-### Phase 7 — Handover  `[ ]`
+### Phase 7 — Handover  `[x]`
 One link, the endpoint table, what is verified, what remains weak.
 
 ## Definition of done
 
 1. One public HTTPS URL where `/` renders the interface, `/docs` renders Swagger,
-   and `/v1/health` returns `200`.
-2. `pytest` green for engine and API.
-3. `grep -ri streamlit` finds hits only under `legacy/`.
-4. README readable in two minutes.
+   and `/v1/health` returns `200`. **Verified.**
+2. `pytest` green for engine and API. **33 passed.**
+3. No Streamlit dependency, import or executable reference outside `legacy/`;
+   the docs mention it only as history. **Verified.**
+4. README readable in two minutes, with the real link. **Verified.**
 
 ## Risks
 
@@ -133,4 +161,5 @@ One link, the endpoint table, what is verified, what remains weak.
 | Chart.js / Google Fonts from CDN | Both cached by the browser; page still renders without them |
 | Cold start trains models (~10 s) | Models lazy, cached per process; `/v1/health` never waits |
 | Public read-only API | No writes, no keys, CORS open by design |
-| HF Space sleeps when idle | Documented; first call may take ~30 s |
+| Serverless host scales to zero | Documented in the README; first request after idle warms up |
+| Free compute is $1/month on this host | The app costs cents per session; the container is capped at one replica |

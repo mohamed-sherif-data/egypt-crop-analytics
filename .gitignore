@@ -20,6 +20,5 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Secrets — never commit credentials or Streamlit-era secrets
+# Secrets — never commit credentials
 .env
-.streamlit/secrets.toml

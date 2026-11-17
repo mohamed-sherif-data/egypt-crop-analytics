@@ -190,3 +190,74 @@ The API tests drive the ASGI app directly, so no port and no network are needed.
 
 **Still open:** the public URL. Publishing needs a Hugging Face account login;
 everything up to the push is finished and verified locally.
+
+## 2026-11-17 — Publishing, and three hosts that said no
+
+The plan assumed a free Hugging Face Docker Space. That assumption died on
+first contact, so the hosting choice below was settled by trying each candidate
+rather than by trusting its pricing page.
+
+| Host | Result |
+|---|---|
+| Hugging Face, Docker SDK, free account | `402 Payment Required` on repo creation: *"hosting Gradio and Docker Spaces on free cpu-basic requires a PRO subscription"*. Static Spaces are still free, but a static Space cannot run the API. |
+| Render, free web service | got as far as Docker / main / Frankfurt / $0 instance, then **Deploy** opened *Add Card* — a card is required even for the free instance type. |
+| Koyeb | GitHub sign-in, email code from the inbox, organisation created — then the console answered `401` on `/v1/apps`, `/v1/services`, `/v1/deployments` and every route redirected to an empty `/settings`. Unusable on the day, and the banner said the platform is being folded into Mistral. |
+| **Modal, serverless ASGI** | **worked.** $1/month of free compute with no card, GitHub auth, and `modal deploy` builds an image from the same files the Dockerfile copies. |
+
+**Deployed:** <https://mohamed-sherif-data--crop-api.modal.run>
+
+Two deploy-blocking bugs of my own, found and fixed on the way:
+
+1. `modal_app.py` had `.workdir()` **after** `add_local_*`, which Modal refuses:
+   *"An image tried to run a build step after using add_local_*"*. Build steps
+   come first, local mounts last.
+2. The Windows console could not encode Modal's build output
+   (`'charmap' codec can't encode characters`), which killed the deploy mid-build
+   even though the build itself was fine. `PYTHONUTF8=1` fixes it.
+
+### Verified on the public host (not locally)
+
+```
+GET /v1/health                    200  {"status":"ok","version":"1.0.0","crops":78,"years":"1990-2024"}
+GET /                             200  text/html, 11,643 B
+GET /styles.css                   200  16,161 B
+GET /assets/field.webp            200  101,814 B
+GET /docs                         200
+GET /v1/crops/wheat/forecast      200  naive 6777.7 · linear 5538.2 · forest 6767.8 (2025)
+GET /v1/crops/nope/forecast       404
+GET /v1/crops/Papayas/forecast    409
+POST /v1/risk/score               200  probability + band
+```
+
+The interface was then loaded in a real browser against that host: status pill
+reached `ready`, KPIs read 7,978 / 78 / 1990–2024 / 6.37 %, the forecast card
+filled with Wheat, and the ranking table rendered 12 rows. Screenshots were
+captured by `scripts/screenshots.py` at a pinned 1440×900 viewport into
+`docs/media/` (local) and `docs/media/live/` (the deployed host).
+
+One number does move between hosts: the random-forest MAE is 1,145 on the live
+image against 1,146 locally, because the wheels resolve a different
+scikit-learn build. The split, the data and the ranking do not change, and the
+README says so rather than quoting one host's decimal as if it were fixed.
+
+## 2026-11-17 — Interface fixes found by driving it
+
+Both were found by using the page, not by reading the code:
+
+- Typing a crop that does not exist showed the API's helpful error **but left
+  the previous crop's numbers and chart on screen**, which reads as a wrong
+  answer rather than a failed lookup. The stat cards now clear to `—` and the
+  chart empties.
+- The scenario scorer's gauge spanned 0–100 %, so the honest 6–9 % range the
+  model actually produces looked like nothing moved. The gauge now saturates at
+  25 %, draws a marker at the measured base rate (8.6 %), and labels the scale,
+  so a move is visible and still in proportion.
+
+## 2026-11-17 — Final state
+
+```
+https://mohamed-sherif-data--crop-api.modal.run   live service, interface, docs
+https://github.com/mohamed-sherif-data/egypt-crop-analytics   source
+```
+
+`py -m pytest -q` → 33 passed. Nothing outside `legacy/` mentions Streamlit.
