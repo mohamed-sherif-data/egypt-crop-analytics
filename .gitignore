@@ -22,3 +22,6 @@ Thumbs.db
 
 # Secrets — never commit credentials
 .env
+
+# local screenshot scratch runs
+docs/media/_preview/
