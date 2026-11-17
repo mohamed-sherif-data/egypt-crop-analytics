@@ -4,12 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Egypt Crop Yield Analytics</title>
-<meta name="description" content="Next-year yield forecasts and decline-risk screening for 78 Egyptian crops, built on 35 years of FAOSTAT records." />
+<meta name="description" content="Next-year yield and decline risk for 78 Egyptian crops, from 35 years of FAOSTAT records." />
 <meta name="color-scheme" content="dark" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="./styles.css" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%8C%BE</text></svg>" />
 </head>
@@ -17,290 +17,92 @@
 
 <div id="status" class="status" role="status" aria-live="polite">
   <span class="status__dot"></span>
-  <span id="status-text">Connecting to the analytics service…</span>
+  <span id="status-text">Connecting…</span>
 </div>
 
 <header class="topbar">
-  <a class="brand" href="#top">
-    <span class="brand__mark" aria-hidden="true">✦</span>
-    <span class="brand__text">Egypt Crop Yield<em>Analytics</em></span>
-  </a>
-  <nav class="topbar__nav" aria-label="Sections">
-    <a href="#forecast">Forecast</a>
-    <a href="#risk">Risk</a>
-    <a href="#models">Models</a>
-    <a href="#data">Data</a>
-    <a href="/docs" class="topbar__cta">API docs</a>
-  </nav>
+  <a class="brand" href="/">Egypt Crop Yield <em>Analytics</em></a>
+  <a class="topbar__link" href="/docs">API docs</a>
 </header>
 
-<main id="top">
-
-  <!-- ------------------------------------------------------------------ hero -->
+<main>
   <section class="hero">
     <div class="hero__media" aria-hidden="true"></div>
+
     <div class="hero__inner">
       <p class="eyebrow">FAOSTAT · Egypt · 1990–2024</p>
-      <h1>Reading thirty-five harvests<br />to see the next one.</h1>
-      <p class="hero__lede">
-        Next-year yield forecasts and a year-on-year decline screen for
-        <strong id="hero-crops">78</strong> crops — every model validated on years
-        it never saw during training.
+      <h1>Next year's harvest,<br />one crop at a time.</h1>
+      <p class="lede">
+        Pick a crop to see thirty-five years of national yield, the forecast for
+        <span id="target-year">next year</span>, and how likely a drop of more than
+        10&nbsp;% is.
       </p>
-      <div class="hero__actions">
-        <a class="button button--gold" href="#forecast">Explore a crop</a>
-        <a class="button button--ghost" href="/docs">Read the API</a>
-      </div>
+
+      <form class="picker" id="picker" role="search">
+        <label class="picker__label" for="crop-input">Crop</label>
+        <input
+          id="crop-input"
+          class="picker__input"
+          list="crop-list"
+          placeholder="Start typing a crop…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <datalist id="crop-list"></datalist>
+        <button class="picker__button" type="submit">Show</button>
+      </form>
+      <p class="picker__hint" id="picker-hint"></p>
     </div>
   </section>
 
-  <!-- ------------------------------------------------------------------- kpis -->
-  <section class="kpis" aria-label="Dataset at a glance">
-    <div class="kpi">
-      <span class="kpi__label">Records</span>
-      <span class="kpi__value" id="kpi-records">—</span>
-      <span class="kpi__sub">rows in the raw export</span>
-    </div>
-    <div class="kpi">
-      <span class="kpi__label">Crops</span>
-      <span class="kpi__value" id="kpi-crops">—</span>
-      <span class="kpi__sub">distinct items</span>
-    </div>
-    <div class="kpi">
-      <span class="kpi__label">Years</span>
-      <span class="kpi__value" id="kpi-years">—</span>
-      <span class="kpi__sub">annual series</span>
-    </div>
-    <div class="kpi kpi--green">
-      <span class="kpi__label">Best MAPE</span>
-      <span class="kpi__value" id="kpi-mape">—</span>
-      <span class="kpi__sub" id="kpi-mape-model">out of sample</span>
-    </div>
-  </section>
-
-  <!-- --------------------------------------------------------------- forecast -->
-  <section class="panel" id="forecast">
-    <div class="panel__head">
+  <section class="card" id="result" aria-live="polite">
+    <div class="card__head">
       <div>
-        <p class="eyebrow">01 — Forecast</p>
-        <h2>What is next year's yield?</h2>
+        <p class="card__label">Latest observed</p>
+        <p class="card__value card__value--muted" id="latest-value">—</p>
+        <p class="card__sub" id="latest-sub">kg/ha</p>
       </div>
-      <div class="panel__aside">
-        <label class="field">
-          <span class="field__label">Crop</span>
-          <input id="crop-input" class="field__input" list="crop-list" placeholder="Start typing…" autocomplete="off" />
-          <datalist id="crop-list"></datalist>
-        </label>
-      </div>
-    </div>
 
-    <div class="grid grid--4" id="forecast-stats">
-      <div class="stat">
-        <span class="stat__label">Latest observed</span>
-        <span class="stat__value" id="fc-latest">—</span>
-        <span class="stat__sub" id="fc-latest-sub">kg/ha</span>
+      <div>
+        <p class="card__label" id="forecast-label">Forecast</p>
+        <p class="card__value" id="forecast-value">—</p>
+        <p class="card__sub" id="forecast-sub">kg/ha</p>
       </div>
-      <div class="stat stat--muted">
-        <span class="stat__label">Naive · <span id="fc-year">next</span></span>
-        <span class="stat__value" id="fc-naive">—</span>
-        <span class="stat__sub">repeats last year</span>
-      </div>
-      <div class="stat stat--gold">
-        <span class="stat__label">Linear regression</span>
-        <span class="stat__value" id="fc-linear">—</span>
-        <span class="stat__sub">kg/ha</span>
-      </div>
-      <div class="stat stat--green">
-        <span class="stat__label">Random forest</span>
-        <span class="stat__value" id="fc-rf">—</span>
-        <span class="stat__sub">kg/ha</span>
+
+      <div class="risk" id="risk">
+        <p class="risk__label">Drop above 10 %</p>
+        <p class="risk__value" id="risk-value">—</p>
+        <p class="risk__sub" id="risk-sub">chance next year</p>
       </div>
     </div>
 
     <figure class="chart">
-      <canvas id="forecast-chart" height="320" aria-label="Yield history and next-year forecast"></canvas>
+      <canvas id="chart" height="300" aria-label="Yield history and next-year forecast"></canvas>
     </figure>
-    <p class="caption" id="forecast-caption"></p>
+
+    <p class="caption" id="caption"></p>
+
+    <dl class="models" id="models">
+      <div><dt>Naive</dt><dd id="m-naive">—</dd></div>
+      <div><dt>Linear</dt><dd id="m-linear">—</dd></div>
+      <div><dt>Forest</dt><dd id="m-forest">—</dd></div>
+    </dl>
   </section>
 
-  <!-- ------------------------------------------------------------------- risk -->
-  <section class="panel" id="risk">
-    <div class="panel__head">
-      <div>
-        <p class="eyebrow">02 — Risk</p>
-        <h2>Where is a drop of more than 10 % likely?</h2>
-      </div>
-    </div>
-
-    <div class="grid grid--4">
-      <div class="stat stat--purple">
-        <span class="stat__label">AUC</span>
-        <span class="stat__value" id="risk-auc">—</span>
-        <span class="stat__sub">0.5 means no skill</span>
-      </div>
-      <div class="stat stat--purple">
-        <span class="stat__label">Base rate</span>
-        <span class="stat__value" id="risk-base">—</span>
-        <span class="stat__sub">drops in the test period</span>
-      </div>
-      <div class="stat stat--purple">
-        <span class="stat__label">Riskiest 10 %</span>
-        <span class="stat__value" id="risk-top">—</span>
-        <span class="stat__sub">actual drop rate</span>
-      </div>
-      <div class="stat stat--purple">
-        <span class="stat__label">Lift</span>
-        <span class="stat__value" id="risk-lift">—</span>
-        <span class="stat__sub">versus random selection</span>
-      </div>
-    </div>
-
-    <div class="split">
-      <div>
-        <h3 class="subhead">Next-year ranking</h3>
-        <div class="table-wrap">
-          <table class="table" id="ranking-table">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Crop</th>
-                <th scope="col" class="num">Latest yield</th>
-                <th scope="col" class="num">Last change</th>
-                <th scope="col">Drop probability</th>
-              </tr>
-            </thead>
-            <tbody id="ranking-body">
-              <tr><td colspan="5" class="empty">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <aside class="scorer">
-        <h3 class="subhead">Score your own scenario</h3>
-        <p class="scorer__hint">
-          The same model, called directly through
-          <code>POST /v1/risk/score</code>. Move a slider to see the probability change.
-        </p>
-
-        <label class="slider">
-          <span>Last year's change <b id="s1-out">0 %</b></span>
-          <input id="s1" type="range" min="-40" max="40" value="0" step="1" />
-        </label>
-        <label class="slider">
-          <span>The year before <b id="s2-out">0 %</b></span>
-          <input id="s2" type="range" min="-40" max="40" value="0" step="1" />
-        </label>
-        <label class="slider">
-          <span>Gap vs three-year average <b id="s3-out">0 %</b></span>
-          <input id="s3" type="range" min="-30" max="30" value="0" step="1" />
-        </label>
-
-        <div class="gauge">
-          <div class="gauge__value" id="score-value">—</div>
-          <div class="gauge__band" id="score-band">probability of a drop above 10 %</div>
-          <div class="gauge__bar">
-            <span id="score-bar"></span>
-            <i class="gauge__marker" id="score-marker" title="Base rate in the test period"></i>
-          </div>
-          <p class="gauge__scale">
-            <span>0 %</span>
-            <span>typical year <b id="score-base">—</b></span>
-            <span>25 %</span>
-          </p>
-        </div>
-      </aside>
-    </div>
-  </section>
-
-  <!-- ----------------------------------------------------------------- models -->
-  <section class="panel" id="models">
-    <div class="panel__head">
-      <div>
-        <p class="eyebrow">03 — Models</p>
-        <h2>How well does it actually do?</h2>
-      </div>
-      <p class="panel__aside caption" id="models-caption"></p>
-    </div>
-
-    <div class="split">
-      <div class="table-wrap">
-        <table class="table" id="metrics-table">
-          <thead>
-            <tr>
-              <th scope="col">Model</th>
-              <th scope="col" class="num">R²</th>
-              <th scope="col" class="num">MAE (kg/ha)</th>
-              <th scope="col" class="num">MAPE (%)</th>
-            </tr>
-          </thead>
-          <tbody id="metrics-body"></tbody>
-        </table>
-      </div>
-      <figure class="chart chart--small">
-        <canvas id="mape-chart" height="260" aria-label="MAPE by model"></canvas>
-      </figure>
-    </div>
-
-    <p class="note">
-      The naive baseline repeats last year's yield and still beats both machine
-      learning models on MAPE and MAE. That is the honest headline: for annual
-      national yields, a crop's own last value is hard to improve on. The pooled R²
-      looks high mainly because the models know which crop they are looking at.
-    </p>
-  </section>
-
-  <!-- ------------------------------------------------------------------- data -->
-  <section class="panel" id="data">
-    <div class="panel__head">
-      <div>
-        <p class="eyebrow">04 — Data</p>
-        <h2>What went in</h2>
-      </div>
-      <p class="panel__aside caption">FAOSTAT, Crops and livestock products (QCL)</p>
-    </div>
-
-    <div class="grid grid--4" id="data-stats">
-      <div class="stat stat--muted">
-        <span class="stat__label">Raw records</span>
-        <span class="stat__value" id="data-raw">—</span>
-        <span class="stat__sub" id="data-missing-chip">—</span>
-      </div>
-      <div class="stat stat--muted">
-        <span class="stat__label">After cleaning</span>
-        <span class="stat__value" id="data-clean">—</span>
-        <span class="stat__sub">modelling table</span>
-      </div>
-      <div class="stat stat--muted">
-        <span class="stat__label">Duplicate keys</span>
-        <span class="stat__value" id="data-dupes">—</span>
-        <span class="stat__sub">crop × year × measurement</span>
-      </div>
-      <div class="stat stat--muted">
-        <span class="stat__label">Measurements</span>
-        <span class="stat__value" id="data-elements">—</span>
-        <span class="stat__sub">yield, production, area</span>
-      </div>
-    </div>
-
-    <h3 class="subhead">Where the numbers come from</h3>
-    <ul class="flags" id="flags"></ul>
-  </section>
-
+  <p class="note">
+    The naive baseline repeats last year's yield and still beats both machine
+    learning models on the held-out years — for annual national yields, a crop's
+    own last value is hard to improve on. Numbers come from the same public API
+    this page calls.
+  </p>
 </main>
 
 <footer class="footer">
-  <p>
-    Data: <strong>FAOSTAT</strong>, Crops and livestock products (QCL), Egypt, 1990–2024.
-    Models: scikit-learn. Service: FastAPI.
-  </p>
-  <p class="footer__links">
-    <a href="/docs">API documentation</a>
-    <span>·</span>
-    <a href="/v1/models/metrics">Raw metrics JSON</a>
-    <span>·</span>
-    <a href="/v1/meta">Dataset metadata</a>
-  </p>
+  <span>Data: FAOSTAT QCL, Egypt, 1990–2024.</span>
+  <span aria-hidden="true">·</span>
+  <a href="/docs">API documentation</a>
+  <span aria-hidden="true">·</span>
+  <a href="/v1/crops/Wheat/forecast">Example response</a>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
