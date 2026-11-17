@@ -24,7 +24,11 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 
 
 def wait_ready(page) -> None:
-    page.wait_for_function("document.getElementById('status').dataset.state === 'ready'")
+    # A deployed instance may be waking from zero, so give it room.
+    page.set_default_timeout(120_000)
+    page.wait_for_function(
+        "document.getElementById('status').dataset.state === 'ready'", timeout=120_000
+    )
 
 
 def main() -> None:

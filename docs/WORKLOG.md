@@ -261,3 +261,41 @@ https://github.com/mohamed-sherif-data/egypt-crop-analytics   source
 ```
 
 `py -m pytest -q` → 33 passed. Nothing outside `legacy/` mentions Streamlit.
+
+## 2026-11-18 — Simplified to one page, one job
+
+Feedback: the interface had too many features and the design did not land. The
+diagnosis was not "add polish" but "remove surface area": five sections, a
+12-row ranking, a model table with a second chart, a dataset report and a
+three-slider scorer all competed for the same attention, and the hero
+photograph was buried under a flat dark wash.
+
+What the page does now: pick a crop → latest year, forest forecast, chance of a
+drop above 10 %, one chart, one honest note.
+
+Removed: KPI strip, ranking table (and the row-click behaviour that went with
+it), model table + MAPE chart, dataset panel, scenario scorer, the Arabic
+annotation layer added the day before. The ranking, scoring and metrics
+endpoints stay in the API — that is the product; the page is one view of it.
+
+Design changes that came with the cut:
+
+- the hero photo is visible again: a horizontal scrim (dark left, open right)
+  instead of a uniform overlay, with a faint gold cast so it sits in the palette
+- the answer card is one surface: three numbers, a chart, a model strip
+- the status pill hides itself 2.6 s after the API is ready
+- the headline forecast is the random forest, so the page is not showing the
+  same number twice as "latest" and "forecast"; the note states plainly that
+  the naive baseline still wins on held-out years
+- the caption explains why the linear branch reads low (it regresses toward
+  the long-run average) instead of leaving a dramatic-looking drop unexplained
+
+Verified with `scripts/check_ui.py` against the deployed host — 14 assertions,
+all passing: it opens on Wheat, the numbers fill, switching to Maize reloads
+the panel and the address bar, an unknown crop clears to `—` and says why,
+`?crop=Rice` opens directly, nothing overflows a 390×844 viewport, and no
+request fails.
+
+Deploy cost, measured: `modal deploy` finished in 4.9 s and rebuilt nothing —
+`web/` and `api/` are mounted local files, so only a few kB moved.
+
