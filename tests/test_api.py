@@ -151,3 +151,14 @@ def test_importance_covers_every_driver(client):
     features = {row["feature"] for row in body["rows"]}
     assert features == {"last_change", "previous_change", "gap_vs_3y_average"}
     assert all(row["mean_abs_shap"] >= 0 for row in body["rows"])
+
+
+# ------------------------------------------------------------------- freshness
+def test_a_redeploy_is_visible_on_the_next_reload(client):
+    """A cached page is how a visitor keeps seeing yesterday's interface."""
+    assert "no-store" in client.get("/").headers["cache-control"]
+
+    asset = client.get("/app.js").headers["cache-control"]
+    assert "no-cache" in asset and "no-store" not in asset
+
+    assert client.get("/v1/health").headers["cache-control"] == "no-store"

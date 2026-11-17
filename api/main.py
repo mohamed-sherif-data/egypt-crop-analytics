@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -60,6 +60,26 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def cache_headers(request: Request, call_next):
+    """Make a redeploy visible on the next reload.
+
+    Static hosting without Cache-Control lets browsers guess, and a guessed
+    cache is how a visitor keeps seeing yesterday's interface. The page itself
+    is never stored, and assets must revalidate; the API is JSON, so it is
+    never stored either.
+    """
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+    elif path.startswith("/v1/"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    else:
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 def _crop(item: str) -> str:
